@@ -1,0 +1,10 @@
+{
+  "simulation": "com.backwards.gatling.Simulation2",
+  "simulationId": "simulation2",
+  "start": 1561238801161,
+  "description": "",
+  "scenarios": ["SE"],
+  "assertions": [
+
+  ]
+}
