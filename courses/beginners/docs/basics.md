@@ -29,7 +29,7 @@ $ sbt gatling-it:test
 - Scenario definition
 - Simulation definition
 
-## Simple Scenario
+## Basic Scenario
 
 ![Request response](images/request-response.png)
 

@@ -12,6 +12,7 @@ class Simulation2 extends Simulation {
     http.baseUrl("https://cheeze-flight-booker.herokuapp.com")
       .inferHtmlResources()
       .userAgentHeader("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+      .silentResources
 
   val headers_0: Map[String, String] = Map(
     "Accept" -> "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -38,62 +39,94 @@ class Simulation2 extends Simulation {
     "Upgrade-Insecure-Requests" -> "1")
 
   val scn: ScenarioBuilder = scenario("SE")
-    .exec(http("Homepage")
-      .get("/")
-      .headers(headers_0)
-      .resources(http("request_1")
-        .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
-        .headers(headers_1)))
+    .exec(
+      http("Homepage")
+        .get("/")
+        .headers(headers_0)
+        .resources(
+          http("request_1")
+            .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
+            .headers(headers_1)
+        )
+        .check(status.in(200, 201, 202, 304))
+        .check(status.not(404))
+    )
     .pause(1 second)
 
-    .exec(http("request_2")
-      .get("/favicon.ico")
-      .headers(headers_2))
+    .exec(
+      http("request_2")
+        .get("/favicon.ico")
+        .headers(headers_2)
+        .silent
+    )
     .pause(10 seconds, 14 seconds) // i.e. pause between 10 and 14 seconds (selected randomly)
 
-    .exec(http("SearchFlight")
-      .get("/flights?utf8=%E2%9C%93&from=1&to=2&date=2015-01-03&num_passengers=2&commit=search")
-      .headers(headers_0)
-      .resources(http("request_4")
-        .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
-        .headers(headers_1),
-        http("request_5")
-          .get("/assets/application-c99cbb3caf78d16bb1482ca2e41d7a9c.css")))
+    .exec(
+      http("SearchFlight")
+        .get("/flights?utf8=%E2%9C%93&from=1&to=2&date=2015-01-03&num_passengers=2&commit=search")
+        .headers(headers_0)
+        .resources(
+          http("request_4")
+            .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
+            .headers(headers_1),
+          http("request_5")
+            .get("/assets/application-c99cbb3caf78d16bb1482ca2e41d7a9c.css")
+        )
+        .check(currentLocationRegex(".*num_passengers=2.*"))
+    )
     .pause(1 second)
 
-    .exec(http("request_6")
-      .get("/favicon.ico"))
-    .pause(9 seconds)
+    .exec(
+      http("request_6")
+        .get("/favicon.ico")
+        .silent
+    )
+    .pause(10 seconds)
 
-    .exec(http("SelectFlight")
-      .get("/bookings/new?utf8=%E2%9C%93&flight_id=10&commit=Select+Flight&num_passengers=2")
-      .headers(headers_0)
-      .resources(http("request_8")
-        .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
-        .headers(headers_1),
-        http("request_9")
-          .get("/assets/application-c99cbb3caf78d16bb1482ca2e41d7a9c.css")))
+    .exec(
+      http("SelectFlight")
+        .get("/bookings/new?utf8=%E2%9C%93&flight_id=10&commit=Select+Flight&num_passengers=2")
+        .headers(headers_0)
+        .resources(
+          http("request_8")
+            .get("/assets/application-2534172286055efef05dbb34d2da8fc2.js")
+            .headers(headers_1),
+          http("request_9")
+            .get("/assets/application-c99cbb3caf78d16bb1482ca2e41d7a9c.css")
+        )
+        .check(css("h1:contains('Book Flight')").exists)
+        .check(substring("Email").find.exists)
+        .check(substring("Email").count.is(2))
+    )
     .pause(1 second)
 
-    .exec(http("request_10")
-      .get("/favicon.ico"))
-    .pause(25 seconds)
+    .exec(
+      http("request_10")
+        .get("/favicon.ico")
+        .silent
+    )
+    .pause(10 seconds)
 
-    .exec(http("BookFlight")
-      .post("/bookings")
-      .headers(headers_11)
-      .formParam("utf8", "✓")
-      .formParam("authenticity_token", "y5BbEyinmIG2AmdPPL+tQzyFu4MpAi9oJZSA8pCGNoLGhrnXj5tRicBpFCGFOonY30qYw0egHCFoV9aAfOeaSw==")
-      .formParam("booking[flight_id]", "10")
-      .formParam("booking[passengers_attributes][0][name]", "Andrew")
-      .formParam("booking[passengers_attributes][0][email]", "andrew654@ggmail.com")
-      .formParam("booking[passengers_attributes][1][name]", "Scott")
-      .formParam("booking[passengers_attributes][1][email]", "scott654@ggmail.com")
-      .formParam("commit", "Book Flight"))
+    .exec(
+      http("BookFlight")
+        .post("/bookings")
+        .headers(headers_11)
+        .formParam("utf8", "✓")
+        .formParam("authenticity_token", "y5BbEyinmIG2AmdPPL+tQzyFu4MpAi9oJZSA8pCGNoLGhrnXj5tRicBpFCGFOonY30qYw0egHCFoV9aAfOeaSw==")
+        .formParam("booking[flight_id]", "10")
+        .formParam("booking[passengers_attributes][0][name]", "Andrew")
+        .formParam("booking[passengers_attributes][0][email]", "andrew654@ggmail.com")
+        .formParam("booking[passengers_attributes][1][name]", "Scott")
+        .formParam("booking[passengers_attributes][1][email]", "scott654@ggmail.com")
+        .formParam("commit", "Book Flight")
+    )
     .pause(1 second)
 
-    .exec(http("request_12")
-      .get("/favicon.ico"))
+    .exec(
+      http("request_12")
+        .get("/favicon.ico")
+        .silent
+    )
 
   setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
 }
