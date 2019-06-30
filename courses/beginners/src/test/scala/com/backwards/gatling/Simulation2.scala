@@ -7,7 +7,9 @@ import io.gatling.http.protocol.HttpProtocolBuilder
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class Simulation2 extends Simulation {
+class Simulation2 extends Simulation with Constants {
+  val authToken = "authenticity_token"
+
   val httpProtocol: HttpProtocolBuilder =
     http.baseUrl("https://cheeze-flight-booker.herokuapp.com")
       .inferHtmlResources()
@@ -36,9 +38,12 @@ class Simulation2 extends Simulation {
     "Accept-Encoding" -> "gzip, deflate, br",
     "Accept-Language" -> "en-US,en;q=0.9",
     "Origin" -> "https://cheeze-flight-booker.herokuapp.com",
-    "Upgrade-Insecure-Requests" -> "1")
+    "Upgrade-Insecure-Requests" -> "1"
+  )
 
   val scn: ScenarioBuilder = scenario("SE")
+    .exec(flushHttpCache)       // Clear cache
+    .exec(flushSessionCookies)  // Clear session cookies
     .exec(
       http("Homepage")
         .get("/")
@@ -97,7 +102,14 @@ class Simulation2 extends Simulation {
         .check(css("h1:contains('Book Flight')").exists)
         .check(substring("Email").find.exists)
         .check(substring("Email").count.is(2))
+        .check(css(s"""input[name="$authToken"]""", value) saveAs authToken)
+        .check(bodyString saveAs body)
     )
+    .exec { session =>
+      println("===> Auth token = " + session(authToken).as[String])
+      println("===> Body = " + session(body).as[String])
+      session
+    }
     .pause(1 second)
 
     .exec(
@@ -112,12 +124,12 @@ class Simulation2 extends Simulation {
         .post("/bookings")
         .headers(headers_11)
         .formParam("utf8", "✓")
-        .formParam("authenticity_token", "y5BbEyinmIG2AmdPPL+tQzyFu4MpAi9oJZSA8pCGNoLGhrnXj5tRicBpFCGFOonY30qYw0egHCFoV9aAfOeaSw==")
+        .formParam(authToken, s"$${$authToken}")
         .formParam("booking[flight_id]", "10")
-        .formParam("booking[passengers_attributes][0][name]", "Andrew")
-        .formParam("booking[passengers_attributes][0][email]", "andrew654@ggmail.com")
+        .formParam("booking[passengers_attributes][0][name]", "Bob")
+        .formParam("booking[passengers_attributes][0][email]", "bob654@ggmail.com")
         .formParam("booking[passengers_attributes][1][name]", "Scott")
-        .formParam("booking[passengers_attributes][1][email]", "scott654@ggmail.com")
+        .formParam("booking[passengers_attributes][1][email]", "scottie654@ggmail.com")
         .formParam("commit", "Book Flight")
     )
     .pause(1 second)
@@ -128,5 +140,14 @@ class Simulation2 extends Simulation {
         .silent
     )
 
-  setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
+  setUp(
+    scn.inject(atOnceUsers(1))
+  )
+  .protocols(httpProtocol)
+  .assertions(
+    global.responseTime.max.lt(1000),
+    forAll.responseTime.max.lt(1000),
+    details("BookFlight").responseTime.max.lt(1000),
+    global.successfulRequests.percent.is(100)
+  )
 }
