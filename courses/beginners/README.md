@@ -11,3 +11,5 @@
 - [Cache & Cookies](docs/cache-and-cookies.md)
 
 - [Feeders](docs/feeders.md)
+
+- [Loops](docs/loops.md)
